@@ -5,6 +5,7 @@ from langchain.messages import SystemMessage , HumanMessage
 from tavily import TavilyClient
 from firecrawl import Firecrawl
 from dotenv import load_dotenv
+import os
 load_dotenv()
 
 #model setup
@@ -46,7 +47,7 @@ def search_stock_data(stock_ticker :str) ->dict:
     ]
     query = f"Latest financial report and price analysis for {ticker} stock"
     
-    tavily_client = TavilyClient(api_key="")
+    tavily_client = TavilyClient(api_key=os.getenv("TIVILY_API_KEY"))
     response = tavily_client.search(query=query , search_depth="advanced" ,include_domains=search_targets)
     
     return response

@@ -5,6 +5,7 @@ from langchain.messages import SystemMessage , HumanMessage
 from tavily import TavilyClient
 from firecrawl import Firecrawl
 from dotenv import load_dotenv
+import os
 load_dotenv()
 
 #model initialization
@@ -55,7 +56,7 @@ def get_all_stock_links(stock_ticker):
         f"https://seekingalpha.com/symbol/{ticker}/analysis",
         f"https://x.com/search?q=%24{ticker}&f=live"
     ]
-    firecrawl = Firecrawl(api_key="")
+    firecrawl = Firecrawl(api_key=os.getenv("FIRECRAWL_API_KEY"))
     # Scrape a website:
     scrape_result = firecrawl.batch_scrape(links, formats=['summary'])
     #You can now pass these specific URLs to Firecrawl for scraping
