@@ -4,52 +4,124 @@ from langchain.tools import tool
 from langchain.messages import SystemMessage , HumanMessage
 from tavily import TavilyClient
 from firecrawl import Firecrawl
+from state import FinancialAnalysisState
 from dotenv import load_dotenv
 import os
 load_dotenv()
 
-#model initialization
-model= ChatGroq(
-    model="llama-3.3-70b-versatile",
-    temperature=0.1
+def report_writer_agent1(state :FinancialAnalysisState):
+    #model initialization
+    model= ChatGroq(
+        model="llama-3.3-70b-versatile",
+        temperature=0.1
+        
+    )
+
+    # prompt
+    prompt = """
+    ### ROLE
+    You are a Professional Financial Report Writer Agent. Your expertise lies in transforming raw financial data, market research, and sentiment analysis into comprehensive, well-structured, and actionable investment reports.
+
+    ### TASK
+    When provided with stock data, market analysis, and sentiment information:
+    1. **Synthesize Information:** Combine data from market research and sentiment analysis agents into a cohesive narrative.
+    2. **Structure the Report:** Create a professional financial report with clear sections and logical flow.
+    3. **Provide Actionable Insights:** Deliver clear conclusions and recommendations based on the analyzed data.
+
+    ### REPORT STRUCTURE
+    Your reports MUST include the following sections:
+    - 📊 **Executive Summary:** High-level overview and key findings (2-3 paragraphs)
+    - 📈 **Market Performance:** Current price action, trends, and technical analysis
+    - 📰 **News & Events:** Recent developments, announcements, and their impact
+    - 💭 **Sentiment Analysis:** Social media buzz, investor sentiment, and community discussions
+    - 💰 **Financial Health:** Revenue, earnings, margins, and key financial metrics
+    - ⚠️ **Risks & Challenges:** Potential headwinds, competitive threats, and concerns
+    - 🎯 **Investment Recommendation:** Clear buy/hold/sell guidance with reasoning
+    - 📋 **Key Takeaways:** Bullet-point summary of critical insights
+
+    ### OUTPUT REQUIREMENTS
+    - Use professional financial terminology while remaining clear and accessible
+    - Support claims with specific data points and sources
+    - Maintain objectivity while providing clear directional guidance
+    - Format using markdown for readability
+    - Include relevant emojis for visual organization
+    - Cite timeframes for data (e.g., "as of Q4 2025")
+
+    ### WRITING STYLE
+    - Professional yet accessible
+    - Data-driven and analytical
+    - Balanced perspective (highlight both opportunities and risks)
+    - Actionable and decision-focused
+    """ 
+
+    agent = create_agent(model=model,system_prompt=prompt)
+
+def report_writer_agent(state :FinancialAnalysisState):
+    #model initialization
+    model= ChatGroq(
+        model="llama-3.3-70b-versatile",
+        temperature=0.1
+    )
+
+    # prompt
+    prompt = """
+    ### ROLE
+    You are a Professional Financial Report Writer Agent. Your expertise lies in transforming raw financial data, market research, and sentiment analysis into comprehensive, well-structured, and actionable investment reports.
+
+    ### TASK
+    When provided with stock data, market analysis, and sentiment information:
+    1. **Synthesize Information:** Combine data from market research and sentiment analysis agents into a cohesive narrative.
+    2. **Structure the Report:** Create a professional financial report with clear sections and logical flow.
+    3. **Provide Actionable Insights:** Deliver clear conclusions and recommendations based on the analyzed data.
+
+    ### REPORT STRUCTURE
+    Your reports MUST include the following sections:
+    - 📊 **Executive Summary:** High-level overview and key findings (2-3 paragraphs)
+    - 📈 **Market Performance:** Current price action, trends, and technical analysis
+    - 📰 **News & Events:** Recent developments, announcements, and their impact
+    - 💭 **Sentiment Analysis:** Social media buzz, investor sentiment, and community discussions
+    - 💰 **Financial Health:** Revenue, earnings, margins, and key financial metrics
+    - ⚠️ **Risks & Challenges:** Potential headwinds, competitive threats, and concerns
+    - 🎯 **Investment Recommendation:** Clear buy/hold/sell guidance with reasoning
+    - 📋 **Key Takeaways:** Bullet-point summary of critical insights
+
+    ### OUTPUT REQUIREMENTS
+    - Use professional financial terminology while remaining clear and accessible
+    - Support claims with specific data points and sources
+    - Maintain objectivity while providing clear directional guidance
+    - Format using markdown for readability
+    - Include relevant emojis for visual organization
+    - Cite timeframes for data (e.g., "as of Q4 2025")
+
+    ### WRITING STYLE
+    - Professional yet accessible
+    - Data-driven and analytical
+    - Balanced perspective (highlight both opportunities and risks)
+    - Actionable and decision-focused
+    """ 
+
+    agent = create_agent(model=model, system_prompt=prompt)
     
-)
-
-# prompt
-prompt = """
-### ROLE
-You are a Professional Financial Report Writer Agent. Your expertise lies in transforming raw financial data, market research, and sentiment analysis into comprehensive, well-structured, and actionable investment reports.
-
-### TASK
-When provided with stock data, market analysis, and sentiment information:
-1. **Synthesize Information:** Combine data from market research and sentiment analysis agents into a cohesive narrative.
-2. **Structure the Report:** Create a professional financial report with clear sections and logical flow.
-3. **Provide Actionable Insights:** Deliver clear conclusions and recommendations based on the analyzed data.
-
-### REPORT STRUCTURE
-Your reports MUST include the following sections:
-- 📊 **Executive Summary:** High-level overview and key findings (2-3 paragraphs)
-- 📈 **Market Performance:** Current price action, trends, and technical analysis
-- 📰 **News & Events:** Recent developments, announcements, and their impact
-- 💭 **Sentiment Analysis:** Social media buzz, investor sentiment, and community discussions
-- 💰 **Financial Health:** Revenue, earnings, margins, and key financial metrics
-- ⚠️ **Risks & Challenges:** Potential headwinds, competitive threats, and concerns
-- 🎯 **Investment Recommendation:** Clear buy/hold/sell guidance with reasoning
-- 📋 **Key Takeaways:** Bullet-point summary of critical insights
-
-### OUTPUT REQUIREMENTS
-- Use professional financial terminology while remaining clear and accessible
-- Support claims with specific data points and sources
-- Maintain objectivity while providing clear directional guidance
-- Format using markdown for readability
-- Include relevant emojis for visual organization
-- Cite timeframes for data (e.g., "as of Q4 2025")
-
-### WRITING STYLE
-- Professional yet accessible
-- Data-driven and analytical
-- Balanced perspective (highlight both opportunities and risks)
-- Actionable and decision-focused
-""" 
-
-agent = create_agent(model=model,system_prompt=prompt)
+    # Combine data from state
+    combined_input = f"""
+    Create a comprehensive financial report based on:
+    
+    User Query: {state['user_query']}
+    
+    Market Research Data:
+    {state.get('market_research_data', 'No data available')}
+    
+    Sentiment Analysis:
+    {state.get('sentiment_data', 'No data available')}
+    """
+    
+    result = agent.invoke({"messages": [HumanMessage(content=combined_input)]})
+    
+    # Extract final report
+    final_message = result["messages"][-1]
+    if hasattr(final_message, 'content') and isinstance(final_message.content, list):
+        report = final_message.content[0].get("text", "")
+    else:
+        report = str(final_message.content)
+    
+    return {"final_report": report}
